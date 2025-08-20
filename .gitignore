@@ -1,0 +1,120 @@
+# ESP32 และ ESP-IDF specific files
+build/
+sdkconfig.old
+.vscode/
+.devcontainer/
+
+# CMake build files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# ESP-IDF generated files
+bootloader/
+partition_table/
+*.bin
+*.elf
+*.map
+dependencies.lock
+
+# Python bytecode และ virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE และ Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs และ temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Docker related (เก็บไว้เพื่อความปลอดภัย)
+.docker/
+docker-compose.override.yml
+
+# สำหรับ Windows
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.pch
+*.exp
+*.lib
+
+# สำหรับ Linux/Mac
+*.o
+*.a
+*.so.*
+core
+
+# Node.js (ถ้ามีการใช้ tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# การตั้งค่าส่วนตัว
+config.local.*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ไฟล์การทดสอบชั่วคราว
+test_output/
+*.test
+*_test_*
+
+# ESP32 Partition และ Certificate files (ถ้ามี sensitive data)
+certificates/
+keys/
+*.pem
+*.key
+*.crt
+
+# Project specific ignores
+projects/*/build/
+projects/*/sdkconfig.old
+projects/*/.vscode/
+
+# การ backup และ archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# IDE configuration files ที่ไม่ควร commit
+.project
+.cproject
+.settings/
+
+# Flash size และ configuration ที่อาจแตกต่างกันในแต่ละเครื่อง
+flash_project_args
+
+# Serial monitor logs
+monitor_output.txt
+*.monitor
+
+# ESP32 QEMU specific
+qemu_efuse.bin
+qemu_flash.bin

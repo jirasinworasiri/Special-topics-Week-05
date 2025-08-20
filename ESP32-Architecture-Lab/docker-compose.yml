@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  esp32-dev:
+    image: espressif/idf:latest
+    container_name: esp32-lab5
+    volumes:
+      - .:/project
+    working_dir: /project
+    tty: true
+    stdin_open: true
+    environment:
+      - IDF_PATH=/opt/esp/idf
+    command: /bin/bash
+    networks:
+      - esp32-network
+
+networks:
+  esp32-network:
+    driver: bridge

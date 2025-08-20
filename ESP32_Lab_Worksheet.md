@@ -367,24 +367,34 @@ Memory analysis complete!
 
 | Memory Section | Variable/Function | Address (ที่แสดงออกมา) | Memory Type |
 |----------------|-------------------|----------------------|-------------|
-| Stack | stack_var | 0x_______ | SRAM |
-| Global SRAM | sram_buffer | 0x_______ | SRAM |
-| Flash | flash_string | 0x_______ | Flash |
-| Heap | heap_ptr | 0x_______ | SRAM |
+| Stack | stack_var | 0x3ffb4550 | SRAM |
+| Global SRAM | sram_buffer | 0x3ffb16ac | SRAM |
+| Flash | flash_string | 0x3f407d08 | Flash |
+| Heap | heap_ptr | 0x3ffb526c | SRAM |
 
 **Table 2.2: Memory Usage Summary**
 
 | Memory Type | Free Size (bytes) | Total Size (bytes) |
 |-------------|-------------------|--------------------|
-| Internal SRAM | _________ | 520,192 |
-| Flash Memory | _________ | varies |
-| DMA Memory | _________ | varies |
+| Internal SRAM | 380136 | 520,192 |
+| Flash Memory | 0 | varies |
+| DMA Memory | 303088 | varies |
 
 ### คำถามวิเคราะห์ (ง่าย)
 
 1. **Memory Types**: SRAM และ Flash Memory ใช้เก็บข้อมูลประเภทไหน?
+SRAM: เก็บตัวแปรชั่วคราว เช่น stack, global variables, heap allocation
+Flash Memory: เก็บข้อมูลถาวร เช่น program code, constant strings (const char[])
+
 2. **Address Ranges**: ตัวแปรแต่ละประเภทอยู่ใน address range ไหน?
+Stack / Global / Heap → เริ่มต้นที่ 0x3ffb.... หรือ 0x3ffc.... → เป็น Internal SRAM
+Flash → เริ่มต้นที่ 0x3f40.... หรือ 0x400.... → อยู่ใน Flash/ROM
+
 3. **Memory Usage**: ESP32 มี memory ทั้งหมดเท่าไร และใช้ไปเท่าไร?
+Internal SRAM ทั้งหมดประมาณ 520 KB
+Free เหลือให้ใช้งาน ~380 KB
+DMA-capable memory เหลือ ~303 KB
+Flash ไม่ได้โชว์ขนาดแน่นอน แต่เก็บ code และ string ได้ตามขนาดของ Flash chip (เช่น 4 MB, 8 MB บน ESP32 รุ่นต่าง ๆ)
 
 ---
 
@@ -573,26 +583,37 @@ void app_main() {
 
 | Test Type | Memory Type | Time (μs) | Ratio vs Sequential |
 |-----------|-------------|-----------|-------------------|
-| Sequential | Internal SRAM | _______ | 1.00x |
-| Random | Internal SRAM | _______ | ____x |
-| Sequential | External Memory | _______ | ____x |
-| Random | External Memory | _______ | ____x |
+| Sequential | Internal SRAM | 5222 | 1.00x |
+| Random | Internal SRAM | 5190 | 0.99x |
+| Sequential | External Memory | 4978 | 0.95x |
+| Random | External Memory | 5050 | 0.97x |
 
 **Table 3.2: Stride Access Performance**
 
 | Stride Size | Time (μs) | Ratio vs Stride 1 |
 |-------------|-----------|------------------|
-| 1 | _______ | 1.00x |
-| 2 | _______ | ____x |
-| 4 | _______ | ____x |
-| 8 | _______ | ____x |
-| 16 | _______ | ____x |
+| 1 | 5223 | 1.00x |
+| 2 | 2559 | 0.49x |
+| 4 | 1253 | 0.24x |
+| 8 | 638 | 0.12x |
+| 16 | 353 | 0.07x |
 
 ### คำถามวิเคราะห์
 
 1. **Cache Efficiency**: ทำไม sequential access เร็วกว่า random access?
+Sequential access เร็วกว่า random access เพราะ cache และ memory controller ทำงานได้ดีเมื่อเข้าถึงข้อมูลต่อเนื่อง → CPU สามารถ prefetch ข้อมูลล่วงหน้าได้
+Random access ทำให้ cache miss มากขึ้น ต้องไปดึงข้อมูลใหม่จาก memory บ่อยกว่า
+
 2. **Memory Hierarchy**: ความแตกต่างระหว่าง internal SRAM และ external memory คืออะไร?
+Internal SRAM: ความเร็วสูงกว่า, latency ต่ำ, อยู่บนชิป ESP32 โดยตรง
+
+External Memory (PSRAM/External RAM): ขนาดใหญ่กว่า แต่ latency สูงกว่า → เหมาะกับงานที่ต้องการพื้นที่มากแต่ไม่ต้องการความเร็วสูงสุด
+ในการทดสอบนี้ External memory เร็วใกล้เคียงกับ Internal (เพราะ array ไม่ใหญ่มาก, caching มีผล)
+
 3. **Stride Patterns**: stride size ส่งผลต่อ performance อย่างไร?
+เมื่อ stride ขนาดใหญ่ขึ้น (2, 4, 8, 16) เวลาที่ใช้ลดลงมาก → เพราะเข้าถึงข้อมูลน้อยลง (กระโดดข้ามไปทีละหลาย element)
+แต่อันนี้ไม่ได้แปลว่า memory เร็วขึ้นจริง ๆ → มันแค่ อ่านน้อยลง จึงใช้เวลาน้อยลง
+ดังนั้น Stride 16 เร็วที่สุด แต่ใช้ข้อมูลไม่ครบทั้งหมด → แสดงว่า pattern ของการเข้าถึงข้อมูลมีผลมากต่อประสิทธิภาพ
 
 ---
 
@@ -819,25 +840,35 @@ void app_main() {
 
 | Metric | Core 0 (PRO_CPU) | Core 1 (APP_CPU) |
 |--------|-------------------|-------------------|
-| Total Iterations | _______ | _______ |
-| Average Time per Iteration (μs) | _______ | _______ |
-| Total Execution Time (ms) | _______ | _______ |
-| Task Completion Rate | _______ | _______ |
+| Total Iterations | 51 | 25 |
+| Average Time per Iteration (μs) | 75 | 9607 |
+| Total Execution Time (ms) | 3.83 | 240.2 |
+| Task Completion Rate | 100% | 49% |
 
 **Table 4.2: Inter-Core Communication**
 
 | Metric | Value |
 |--------|-------|
-| Messages Sent | _______ |
-| Messages Received | _______ |
-| Average Latency (μs) | _______ |
-| Queue Overflow Count | _______ |
+| Messages Sent | 6 |
+| Messages Received | 5 |
+| Average Latency (μs) | 4.05 ms |
+| Queue Overflow Count | 0 |
 
 ### คำถามวิเคราะห์
 
 1. **Core Specialization**: จากผลการทดลอง core ไหนเหมาะกับงานประเภทใด?
+Core 0 (PRO_CPU): มี iteration rate สูง (51 รอบ, avg 75 μs) → เหมาะกับงานที่ต้องทำซ้ำบ่อยและต้องการ low-latency / high-frequency เช่น real-time sensor polling, control loop
+Core 1 (APP_CPU): ใช้เวลาเฉลี่ยต่อรอบสูง (9607 μs) → เหมาะกับงานที่ต้องการ ประมวลผลหนัก หรือ background task เช่น data logging, computation, networking
+
 2. **Communication Overhead**: inter-core communication มี overhead เท่าไร?
+ค่าเฉลี่ย latency ใน inter-core messaging ≈ 4.05 ms ต่อข้อความ
+เมื่อเทียบกับ Core 0 ที่ทำงานเร็วมาก (75 μs/iteration) → การสื่อสารช้ามาก (ช้ากว่า ~50 เท่า)
+แสดงว่าการสื่อสารระหว่าง cores เป็น คอขวด (bottleneck) ที่สำคัญ
+
 3. **Load Balancing**: การกระจายงานระหว่าง cores มีประสิทธิภาพหรือไม่?
+Core 0 ทำงานได้มากกว่าเกือบ 2 เท่า (51 vs 25 iterations)
+Core 1 ทำงานช้ากว่าและติด latency สูง → การกระจายงานยัง ไม่สมดุล
+ถ้าต้องการให้ parallel efficiency สูงขึ้น ควรใช้ task partitioning ที่เหมาะสม เช่น ให้ Core 0 handle fast I/O และ Core 1 handle heavy compute
 
 ---
 
@@ -851,9 +882,9 @@ void app_main() {
 ### แบบฟอร์มส่งงาน
 
 **ข้อมูลนักศึกษา:**
-- ชื่อ: _________________________________
-- รหัสนักศึกษา: _______________________
-- วันที่ทำการทดลอง: ___________________
+- ชื่อ: นางสาวจิรสิน วรศิริ
+- รหัสนักศึกษา: 66030029
+- วันที่ทำการทดลอง: 8/20/2025
 
 **Checklist การทดลอง:**
 - [ ] Environment setup สำเร็จ (ต่อเนื่องจากสัปดาห์ที่ 4)
@@ -872,13 +903,13 @@ void app_main() {
 
 **คำถามเพิ่มเติม:**
 1. เปรียบเทียบประสบการณ์การใช้ Docker ในสัปดาห์นี้กับสัปดาห์ที่ 4:
-   _________________________________________________
+   เข้าใจการใช้งานและการจัดการ container มากขึ้น ใช้งานคล่องกว่าเดิม สัปดาห์นี้ทำงานราบรื่นกว่าสัปดาห์ที่ 4 ที่ยังสับสนกับคำสั่งพื้นฐาน
 
 2. สิ่งที่เรียนรู้เพิ่มเติมเกี่ยวกับ ESP32 architecture:
-   _________________________________________________
+   รู้จักการทำงานแบบ dual-core (PRO_CPU และ APP_CPU), การแบ่งหน้าที่ของแต่ละ core และ overhead จาก inter-core communication
 
 3. ความท้าทายที่พบในการทำ architecture analysis:
-   _________________________________________________
+   การวัด latency และ load balancing ทำได้ยาก ต้องตีความผลการทดลองให้เชื่อมโยงกับการออกแบบระบบจริง
 
 ---
 
